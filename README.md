@@ -48,13 +48,44 @@ spark-hadoop-hive-demo01/
 │   │   │   │   ├── HDFSJavaApp.java          # HDFS Java实现
 │   │   │   │   └── HDFSAdvancedJavaApp.java  # HDFS 高级特性
 │   │   │   ├── flink/                        # 🆕 Flink 流处理
-│   │   │   │   └── FlinkStreamingJavaApp.java
+│   │   │   │   ├── FlinkStreamingJavaApp.java
+│   │   │   │   └── FlinkTableApiJavaApp.java # 🆕 Flink Table API & SQL
 │   │   │   ├── kafka/                        # 🆕 Kafka 消息队列
-│   │   │   │   └── KafkaJavaApp.java
+│   │   │   │   ├── KafkaJavaApp.java
+│   │   │   │   └── KafkaStreamsJavaApp.java   # 🆕 Kafka Streams 流处理
 │   │   │   ├── iceberg/                      # 🆕 Iceberg 数据湖
 │   │   │   │   └── IcebergJavaApp.java
-│   │   │   └── clickhouse/                   # 🆕 ClickHouse OLAP
-│   │   │       └── ClickHouseJavaApp.java
+│   │   │   ├── clickhouse/                   # 🆕 ClickHouse OLAP
+│   │   │   │   └── ClickHouseJavaApp.java
+│   │   │   ├── spark/
+│   │   │   │   ├── SparkHiveJavaApp.java
+│   │   │   │   └── SparkStructuredStreamingJavaApp.java # 🆕 Structured Streaming
+│   │   │   └── realtime/                     # 🆕 实时数仓实战
+│   │   │       └── RealtimeDataWarehouseApp.java
+│   │   │   └── governance/                   # 🆕 数据治理
+│   │   │       └── AtlasGovernanceApp.java   # Atlas 元数据&血缘
+│   │   │   └── monitoring/                  # 🆕 监控体系
+│   │   │       └── PrometheusMonitoringApp.java  # Prometheus 全栈监控
+│   │   │   └── datalake/                    # 🆕 数据湖
+│   │   │       └── DataLakeApp.java         # Delta Lake + Hudi
+│   │   │   └── ml/                          # 🆕 机器学习
+│   │   │       └── MLPlatformApp.java       # MLflow + Spark MLlib
+│   │   │   └── security/                   # 🆕 数据安全
+│   │   │       └── DataSecurityApp.java     # Ranger + Kerberos + 脱敏
+│   │   │   └── olap/                        # 🆕 实时 OLAP
+│   │   │       └── RealtimeOlapApp.java     # Doris + StarRocks
+│   │   │   └── graph/                       # 🆕 图计算
+│   │   │       └── GraphComputingApp.java   # Neo4j + Spark GraphX
+│   │   │   └── contract/                   # 🆕 数据契约
+│   │   │       └── DataContractApp.java     # Data Contract + Mesh + API
+│   │   │   └── vector/                      # 🆕 向量数据库
+│   │   │       └── VectorDatabaseApp.java   # Milvus + RAG Pipeline
+│   │   │   └── feature/                     # 🆕 特征工程
+│   │   │       └── FeatureStoreApp.java     # Feast Feature Store
+│   │   │   └── dataops/                     # 🆕 DataOps 平台
+│   │   │       └── DataOpsApp.java          # Terraform IaC + CI/CD
+│   │   │   └── cdc/                         # 🆕 CDC 全链路
+│   │   │       └── CDCPipelineApp.java      # Debezium + Flink CDC 3.0
 │   │   ├── scala/com/bigdata/
 │   │   │   ├── spark/
 │   │   │   │   └── SparkHiveApplication.scala # Spark+Hive Scala实现
@@ -79,6 +110,17 @@ spark-hadoop-hive-demo01/
 │   │       └── hbase-site.xml                # HBase配置
 │   └── test/
 └── scripts/                                   # 启动脚本
+│   └── mysql-init/
+│       └── init.sql                           # 🆕 MySQL 初始化(CDC测试)
+└── docker-compose.yml                         # 🆕 一键部署环境
+└── airflow/                                   # 🆕 Airflow DAG 调度
+    └── dags/
+        ├── bigdata_etl_pipeline_dag.py        # ETL 全链路调度
+        ├── realtime_pipeline_dag.py           # 实时流管理
+        └── atlas_governance_dag.py            # Atlas 治理集成
+└── scripts/monitoring/                        # 🆕 监控配置
+    ├── prometheus.yml                         # Prometheus 采集配置
+    └── alert_rules.yml                        # 告警规则
 ```
 
 ## 🚀 功能特性
@@ -187,6 +229,15 @@ spark-hadoop-hive-demo01/
 - ✅ 精确一次语义 (Exactly-Once)
 - ✅ 函数式编程风格 (Scala)
 
+### Flink Table API & SQL ⭐ NEW!
+- ✅ Table API 操作 (投影/过滤/聚合/连接)
+- ✅ SQL DDL (Kafka/JDBC/Filesystem/ES Connector)
+- ✅ TVF 窗口 (Tumble/Hop/Session/Cumulate)
+- ✅ Temporal Join (时态表连接 + Lookup Join)
+- ✅ MATCH_RECOGNIZE (复杂事件检测)
+- ✅ Mini-Batch/两阶段聚合/Split Distinct 优化
+- ✅ UDF/UDAF/UDTF 自定义函数
+
 ### Apache Kafka 消息队列
 - ✅ Topic 管理 (创建、删除、查询、修改配置)
 - ✅ 生产者 (同步/异步发送、批量发送)
@@ -198,10 +249,258 @@ spark-hadoop-hive-demo01/
 - ✅ 自定义分区器
 - ✅ 性能优化配置
 
+### Kafka Streams 流处理 ⭐ NEW!
+- ✅ KStream / KTable / GlobalKTable
+- ✅ 无状态转换 (filter/map/flatMap/branch)
+- ✅ 有状态转换 (aggregate/reduce/count)
+- ✅ 窗口操作 (Tumbling/Hopping/Sliding/Session)
+- ✅ 连接操作 (Stream-Stream/Stream-Table/Global Join)
+- ✅ 实战: 实时词频统计/用户行为分析/欺诈检测
+
+### Spark Structured Streaming ⭐ NEW!
+- ✅ Source (Rate/File/Kafka)
+- ✅ Kafka 完整集成 (Source + Sink + JSON 解析)
+- ✅ 窗口 (Tumbling/Sliding/Session + Watermark)
+- ✅ 有状态处理 (mapGroupsWithState/flatMapGroupsWithState)
+- ✅ 流连接 (Stream-Stream/Stream-Static Join)
+- ✅ ForeachBatch (MySQL/ClickHouse/HBase/多路输出)
+- ✅ 性能调优 (Trigger/Checkpoint/Backpressure)
+
+### 实时数仓实战 ⭐ NEW!
+- ✅ 四层架构 (ODS → DWD → DWS → ADS)
+- ✅ Flink CDC + Kafka + Flink SQL + ClickHouse
+- ✅ 维度表 Lookup Join
+- ✅ 实时指标 (PV/UV/GMV/转化率)
+- ✅ ClickHouse 物化视图
+- ✅ 数据质量监控
+
 ### Flink CDC 实时数据同步
 - ✅ MySQL Binlog 实时订阅
 - ✅ 增量数据捕获 (CDC)
 - ✅ 数据转换与过滤
+
+### Apache Airflow 工作流调度 ⭐ NEW!
+- ✅ ETL Pipeline 全链路调度 (采集→ODS→DWD→DWS→ADS→导出)
+- ✅ TaskGroup 并行任务分组
+- ✅ 自定义 Operator (ClickHouseOperator / HivePartitionSensor)
+- ✅ 数据质量检查 (完整性/准确性/一致性/时效性/唯一性)
+- ✅ SLA 监控 & 失败告警回调 (飞书/钉钉/企微)
+- ✅ 数据回刷 DAG (Backfill - 手动指定日期范围)
+- ✅ Flink 作业生命周期管理 (健康检查/自动恢复/Savepoint备份)
+- ✅ Kafka Consumer Lag 监控 & 告警
+- ✅ Sqoop/Spark/Hive 多引擎编排
+- ✅ XCom / Variable / Connection 配置管理
+
+### Apache Atlas 数据治理 ⭐ NEW!
+- ✅ 自定义类型系统 (EntityDef/ClassificationDef/RelationshipDef/BusinessMetadataDef)
+- ✅ 元数据实体管理 (Hive表/Kafka Topic/ClickHouse表 CRUD)
+- ✅ 数据血缘追踪 (端到端: MySQL→ODS→DWD→DWS→ClickHouse)
+- ✅ 列级血缘 (Column-Level Lineage) & 影响分析
+- ✅ 数据分类体系 (PII/安全等级/质量认证/GDPR/保留策略)
+- ✅ 分类传播 (Classification Propagation) 沿血缘自动传播
+- ✅ 业务术语表 (Glossary) - GMV/DAU/转化率/客单价口径统一
+- ✅ 全文搜索 & DSL 高级查询
+- ✅ 实时数仓血缘图谱 (CDC→Kafka→Flink SQL→ClickHouse)
+- ✅ 数据质量规则元数据 & 质量评分体系
+- ✅ Hook 集成 (Hive/Spark/Kafka/Flink 自动采集)
+- ✅ 审计日志 & 通知机制
+
+### Airflow + Atlas 集成 ⭐ NEW!
+- ✅ ETL 完成后自动注册血缘到 Atlas
+- ✅ 数据治理巡检 (元数据完整性/分类覆盖率/血缘完整性/PII合规)
+- ✅ 治理评分体系 (A/B/C/D 四级)
+- ✅ 元数据变更监控 & Schema 变更检测
+- ✅ 关键血缘链路完整性校验
+- ✅ 数据资产盘点 (按分层/按业务域)
+
+### Prometheus + Grafana 监控体系 ⭐ NEW!
+- ✅ 自定义 Prometheus 指标体系 (Counter/Gauge/Histogram/Summary)
+- ✅ Spark/Flink/Kafka/HDFS/Hive/ClickHouse 全栈指标采集
+- ✅ JMX Exporter 配置 (Kafka/Spark/Flink/HBase)
+- ✅ 15 条告警规则 (Kafka Lag/Flink 背压/HDFS 容量/SLA 违规)
+- ✅ Alertmanager 路由 (飞书/钉钉/企微 Webhook)
+- ✅ Grafana Dashboard 自动生成 (7 大面板 / 30+ 图表)
+- ✅ SLA 合规性监控 (延迟/质量/可用性)
+- ✅ 自动扩缩容引擎 (Flink TM/Spark Executor/Kafka Consumer)
+
+### 数据湖 Delta Lake + Hudi ⭐ NEW!
+- ✅ Delta Lake: CRUD / MERGE INTO / Time Travel / Schema Evolution
+- ✅ Delta Lake: Change Data Feed (CDC → 数据湖)
+- ✅ Delta Lake: 表优化 (OPTIMIZE / Z-ORDER / VACUUM)
+- ✅ Apache Hudi: COW 表 (读多写少场景) + Upsert
+- ✅ Apache Hudi: MOR 表 (写多读少 / 近实时)
+- ✅ Apache Hudi: 增量查询 (Incremental Query) + Hive 同步
+- ✅ Medallion 架构: Bronze(原始)→ Silver(清洗)→ Gold(聚合)
+- ✅ 数据质量检查 (分层间数据质量对比)
+
+### MLflow + Spark MLlib 机器学习 ⭐ NEW!
+- ✅ 用户流失预测 (GBT/Random Forest/Logistic Regression)
+- ✅ 特征工程 Pipeline (索引/编码/组装/标准化)
+- ✅ 超参调优 (CrossValidator + Grid Search / 5-Fold)
+- ✅ 销售额预测 (GBT Regression / Linear Regression)
+- ✅ 用户分群 (K-Means 聚类 + RFM 分析 + 肘部法则)
+- ✅ 商品推荐 (ALS 协同过滤 / Top-N 推荐)
+- ✅ MLflow 实验追踪 & 模型注册
+- ✅ A/B 测试框架 & 特征存储设计
+
+### 数据安全 Ranger + Kerberos ⭐ NEW!
+- ✅ Kerberos 认证体系 (KDC/TGT/Keytab/委托令牌/TGT续期)
+- ✅ Ranger 策略引擎 (RBAC/ABAC/行级过滤/列级脱敏/标签策略)
+- ✅ HDFS/Hive/HBase/Kafka 四大组件访问策略 (12+ 策略)
+- ✅ 数据脱敏 (手机/身份证/姓名/邮箱/银行卡/IP/SHA-256)
+- ✅ 数据加密 (AES-256-GCM/列级加密/密钥管理)
+- ✅ 数据分级分类 (自动发现敏感字段/绝密/机密/内部/公开)
+- ✅ 安全审计 (操作日志/异常检测/合规报告/GDPR)
+- ✅ 访问控制评估引擎 (策略缓存/优先级/默认拒绝)
+
+### 实时 OLAP Doris + StarRocks ⭐ NEW!
+- ✅ Doris 三种表模型 (Duplicate明细/Aggregate聚合/Unique去重)
+- ✅ Doris 动态分区 + SSD-HDD 冷热分离
+- ✅ BITMAP 精确去重 + HLL 近似去重
+- ✅ 同步/异步物化视图 + 透明查询改写
+- ✅ 数据导入 (Stream Load/Routine Load/Broker Load/INSERT SELECT)
+- ✅ StarRocks Primary Key 实时 Upsert (Merge-On-Write)
+- ✅ Colocate Join (同分布本地Join/零Shuffle)
+- ✅ 湖仓一体 External Catalog (Hive/Iceberg/Hudi/Delta Lake)
+- ✅ 多维分析 (实时大盘/漏斗/留存/TopN/同环比/路径分析)
+- ✅ 性能优化 (分区裁剪/Bucket/索引/Pipeline/Runtime Filter)
+
+### 图计算 Neo4j + Spark GraphX ⭐ NEW!
+- ✅ Neo4j 图数据建模 (User/Product/Category 属性图)
+- ✅ Neo4j Cypher 分析 (社交推荐/协同过滤/社区发现/PageRank)
+- ✅ Spark GraphX 图构建 (顶点RDD/边RDD/属性图)
+- ✅ GraphX PageRank 影响力排名
+- ✅ GraphX Connected Components 社区检测
+- ✅ GraphX Triangle Count 关系紧密度
+- ✅ Pregel 消息传递 (影响力传播模拟)
+- ✅ 反欺诈图分析 (设备关联/资金环路/风险传播/团伙识别)
+- ✅ 知识图谱 (商品关系/兴趣推理/供应链追溯)
+
+### 数据编排 dbt + Airbyte ⭐ NEW!
+- ✅ dbt 项目结构 (staging/intermediate/marts 三层架构)
+- ✅ dbt 增量模型 (merge/delete+insert/append 三种策略)
+- ✅ dbt 快照 SCD Type 2 (缓慢变化维/变更检测/历史追踪)
+- ✅ dbt 测试体系 (generic/singular/custom/模型契约)
+- ✅ dbt 宏 Jinja2 (cents_to_dollars/generate_schema_name/audit_helper)
+- ✅ dbt Packages (dbt_utils/dbt_expectations/elementary)
+- ✅ Airbyte Source (MySQL CDC/REST API/S3 Connector)
+- ✅ Airbyte Destination (Doris/PostgreSQL)
+- ✅ Airbyte 同步模式 (Full Refresh/Incremental/CDC)
+- ✅ Airbyte API 编程集成 (触发同步/状态查询/统计)
+- ✅ Airflow + dbt Cosmos 集成 (DAG → dbt TaskGroup)
+- ✅ 端到端 ELT Pipeline (EL → Transform → Quality Gate → Notify)
+- ✅ 数据质量门禁 (测试分级/自动阻断/告警)
+- ✅ Schema Contract (模型契约/类型强制/访问控制)
+- ✅ CI/CD (GitHub Actions/Slim CI/PR Review)
+
+### Serverless 计算 Flink on K8s ⭐ NEW!
+- ✅ Flink K8s Operator 架构 (CRD/Reconciler/状态管理)
+- ✅ FlinkDeployment Application 模式 (独立集群/生产级)
+- ✅ FlinkDeployment Session 模式 (共享集群/开发级)
+- ✅ FlinkSessionJob 会话作业提交
+- ✅ Savepoint & Checkpoint 管理 (触发/升级/恢复)
+- ✅ Pod Template (InitContainer/Sidecar/Fluent Bit)
+- ✅ ResourceQuota & LimitRange (命名空间资源控制)
+- ✅ RBAC & ServiceAccount (最小权限)
+- ✅ Flink Autoscaler (反压驱动/自动并行度调整)
+- ✅ KEDA 事件驱动伸缩 (Kafka Lag/Prometheus 指标)
+- ✅ HPA (CPU/Memory/Custom Metrics)
+- ✅ Spot Instance 混合调度 (JM On-Demand + TM Spot/节省80%)
+- ✅ Docker 多阶段构建 (builder → runtime)
+- ✅ Helm Chart 管理 (values overlay/多环境)
+- ✅ ArgoCD GitOps (自动同步/自修复/声明式部署)
+- ✅ Canary & Blue-Green 发布 (双作业并行/指标验证)
+- ✅ 多租户 Namespace 隔离 (PriorityClass/抢占策略)
+- ✅ 成本核算 (Kubecost/按团队按作业/优化建议)
+
+### 数据可观测性 OpenLineage + Marquez ⭐ NEW!
+- ✅ OpenLineage 事件模型 (RunEvent/START/COMPLETE/FAIL)
+- ✅ OpenLineage Facets (Schema/ColumnLineage/DataQuality/Statistics)
+- ✅ Marquez 元数据服务架构 (API + Web UI + PostgreSQL)
+- ✅ Marquez REST API (血缘查询/数据集版本/作业执行历史)
+- ✅ Spark OpenLineage 集成 (自动血缘采集/手动 Java 客户端)
+- ✅ Flink OpenLineage 集成
+- ✅ Airflow OpenLineage Provider
+- ✅ dbt OpenLineage 集成 (模型级+字段级血缘)
+- ✅ 跨系统端到端血缘 (MySQL → Airbyte → dbt → Doris → BI)
+- ✅ 字段级血缘 (Column Lineage/表达式追踪)
+- ✅ 数据质量四维度 (完整性/准确性/一致性/时效性)
+- ✅ Pipeline 健康度仪表盘 (成功率/P95延迟/SLA达成率)
+- ✅ 数据漂移检测 (Schema Drift/Distribution Drift/Volume Drift)
+- ✅ 影响分析 (上游变更 → 下游9个Dataset影响评估)
+- ✅ 根因分析 (异常溯源/时间线还原/修复方案)
+- ✅ SLA 告警体系 (Pipeline延迟/质量/新鲜度/Schema变更)
+- ✅ 合规追踪 (PII 血缘/GDPR 删除/数据保留策略)
+
+### 数据契约 Data Contract + Data Mesh ⭐ NEW!
+- ✅ Data Contract 规范 (datacontract-specification v0.9.3 完整 YAML)
+- ✅ Schema 定义 (字段类型/必填/枚举/PII/分类/嵌套对象/数组)
+- ✅ 质量 SLA (SodaCL 完整性/准确性/时效性/一致性)
+- ✅ 服务水平协议 (可用性99.9%/延迟5min/保留3年/响应30min)
+- ✅ Schema 演进策略 (BACKWARD/FORWARD/FULL/SemVer)
+- ✅ Data Contract CLI (lint/test/diff/catalog/import/export)
+- ✅ Data Mesh 四大原则 (领域所有权/数据即产品/自服务平台/联邦治理)
+- ✅ Data Product YAML 定义 (输入端口/输出端口/转换/质量/可观测)
+- ✅ 联邦治理 (全局命名/分类/质量标准 + 领域自治 + 互操作性)
+- ✅ Schema Registry (Confluent/Avro/兼容性检查/版本管理)
+- ✅ GraphQL Data API (订单查询/指标聚合/血缘查询)
+- ✅ REST Data API (OpenAPI 3.0/契约版本/新鲜度/质量元数据)
+- ✅ gRPC Data API (流式查询/实时订阅/高性能二进制)
+- ✅ 契约测试 CI/CD (语法/兼容性/质量/消费者通知)
+- ✅ OPA 策略引擎 (PII加密/保留期/可用性/兼容性合规自动化)
+- ✅ Data Product Canvas (成熟度评估/成本价值分析)
+
+### 向量数据库 Milvus + LLM RAG ⭐ NEW!
+- ✅ Milvus 2.x 分布式架构 (Proxy/Coordinator/Worker/Storage)
+- ✅ Milvus Docker 部署 (etcd + MinIO + Standalone + Attu UI)
+- ✅ Milvus Java SDK (建表/索引/插入/搜索/混合搜索)
+- ✅ Embedding 模型选型 (BGE-M3/BGE-zh/text-embedding-3/Jina-v2)
+- ✅ Spark 批量 Embedding Pipeline (Hive→Spark→API→Milvus)
+- ✅ 企业级 RAG 架构 (8步: 查询理解→多路召回→重排→生成→后处理)
+- ✅ RAG Pipeline Java 实现 (HyDE/Multi-Query/RRF/Reranker)
+- ✅ RAG 评估指标 RAGAS (Faithfulness/Relevancy/Recall/Precision)
+- ✅ 混合搜索 (Dense+Sparse+Metadata/RRF融合/Multi-Vector)
+- ✅ 向量索引策略 (FLAT/IVF_FLAT/IVF_PQ/HNSW/DiskANN 选型)
+- ✅ 大数据+AI 融合架构 (Lakehouse+向量化+特征+知识图谱→AI应用)
+
+### 实时特征工程 Feature Store (Feast) ⭐ NEW!
+- ✅ Feature Store 全景架构 (定义/计算/存储/服务四层)
+- ✅ Feast 项目配置 (Spark离线/Redis在线/PostgreSQL注册)
+- ✅ Entity 定义 (用户实体/商品实体)
+- ✅ BatchFeatureView (30天订单统计/RFM/品类偏好)
+- ✅ StreamFeatureView (10分钟实时行为: 点击/加购/搜索/浏览)
+- ✅ FeatureService 组合 (推荐模型v2/风控模型v1)
+- ✅ Flink SQL 实时特征 (滑动窗口聚合→Redis)
+- ✅ 流批统一 (同一SQL模板→Flink实时+Spark回填)
+- ✅ Online Serving (Redis <5ms/REST API/Feature Service)
+- ✅ Historical Serving (Point-in-Time Join/防未来泄露)
+- ✅ 特征监控 (新鲜度/空值率/覆盖率/缓存命中率)
+- ✅ 漂移检测 (PSI/KS Test/Chi-Square/Wasserstein Distance)
+
+### DataOps 平台工程 & IaC ⭐ NEW!
+- ✅ Terraform IaC (Kafka/Flink/Doris/Milvus/Monitoring 代码化)
+- ✅ 多环境配置 (dev/staging/prod 差异化 tfvars)
+- ✅ Terraform 模块化 (modules + values + charts)
+- ✅ K8s 大数据平台全景 (应用NS/数据NS/平台NS 分层)
+- ✅ ArgoCD GitOps 声明式部署 (自动同步+自修复)
+- ✅ 自助数据平台 (SQL工作台/Notebook/调度/目录/权限/AI助手)
+- ✅ 多租户资源管理 (K8s Quota/Spark动态分配/Doris WorkloadGroup)
+- ✅ CI/CD for Data (lint/test/compatibility/integration/canary)
+- ✅ FinOps 成本治理 (按团队/按组件/Kubecost/优化策略)
+
+### CDC 全链路 Debezium + Flink CDC 3.0 ⭐ NEW!
+- ✅ Debezium 架构 (MySQL Binlog/PG WAL/MongoDB OpLog)
+- ✅ Debezium MySQL Connector 生产级配置 (快照/SMT/DLQ/心跳)
+- ✅ CDC 消息格式 (Envelope: before/after/source/op/transaction)
+- ✅ Flink CDC 3.0 YAML Pipeline (无代码整库同步)
+- ✅ Flink CDC 3.0 Transform (过滤/投影/脱敏/路由)
+- ✅ Flink CDC Java API (MySqlSource/增量快照/并行分片)
+- ✅ 增量快照算法 (无锁并行/Split级Checkpoint/Binlog修正)
+- ✅ Schema Evolution 全链路 (DDL捕获→Registry→自动传播)
+- ✅ Exactly-Once 语义 (Source/Transport/Sink 三段保证)
+- ✅ 幂等写入 (UPSERT) + 两阶段提交 (2PC) + 预写日志 (WAL)
+- ✅ CDC 运维 (Binlog过期/大表快照/主从切换/延迟告警/数据对账)
+- ✅ CDC 最佳实践 & 踩坑 (binlog配置/时区/decimal/大事务/权限)
 - ✅ 多表同步
 - ✅ Schema Evolution
 - ✅ 实时写入 Kafka/Iceberg
@@ -432,6 +731,228 @@ mvn exec:java -Dexec.mainClass="com.bigdata.iceberg.IcebergJavaApp"
 
 # 运行 ClickHouse 应用
 mvn exec:java -Dexec.mainClass="com.bigdata.clickhouse.ClickHouseJavaApp"
+
+# ========== 高级实战 ⭐ NEW! ==========
+
+# 运行 Flink Table API & SQL 应用
+mvn exec:java -Dexec.mainClass="com.bigdata.flink.FlinkTableApiJavaApp"
+
+# 运行 Kafka Streams 流处理应用
+mvn exec:java -Dexec.mainClass="com.bigdata.kafka.KafkaStreamsJavaApp"
+
+# 运行 Spark Structured Streaming 应用
+mvn exec:java -Dexec.mainClass="com.bigdata.spark.SparkStructuredStreamingJavaApp"
+
+# 运行实时数仓应用
+mvn exec:java -Dexec.mainClass="com.bigdata.realtime.RealtimeDataWarehouseApp"
+
+# ========== Docker 一键部署 ==========
+
+# 启动所有大数据组件
+docker-compose up -d
+
+# 查看组件状态
+docker-compose ps
+
+# 查看 Flink 日志
+docker-compose logs -f flink-jobmanager
+
+# 停止所有组件
+docker-compose down
+
+# ========== Airflow 调度 ⭐ NEW! ==========
+
+# 启动 Airflow (WebServer + Scheduler)
+docker-compose up -d airflow-postgres airflow-init airflow-webserver airflow-scheduler
+
+# 访问 Airflow UI: http://localhost:8082 (admin/admin)
+
+# 触发 ETL Pipeline
+docker-compose exec airflow-webserver airflow dags trigger bigdata_etl_pipeline
+
+# 手动触发数据回刷
+docker-compose exec airflow-webserver airflow dags trigger bigdata_etl_backfill \
+  --conf '{"start_date":"2024-01-01","end_date":"2024-01-07","layers":"ods,dwd,dws"}'
+
+# ========== Atlas 数据治理 ⭐ NEW! ==========
+
+# 启动 Atlas
+docker-compose up -d atlas solr
+
+# 访问 Atlas UI: http://localhost:21000 (admin/admin)
+
+# 运行 Atlas 数据治理示例
+mvn exec:java -Dexec.mainClass="com.bigdata.governance.AtlasGovernanceApp"
+
+# ========== Prometheus 监控 ⭐ NEW! ==========
+
+# 启动 Prometheus + Alertmanager + Node Exporter
+docker-compose up -d prometheus alertmanager node-exporter
+
+# 访问:
+#   Prometheus:   http://localhost:9090
+#   Alertmanager: http://localhost:9093
+#   Grafana:      http://localhost:3000
+
+# 运行自定义 Metrics Exporter
+mvn exec:java -Dexec.mainClass="com.bigdata.monitoring.PrometheusMonitoringApp"
+
+# ========== 数据湖 Delta Lake + Hudi ⭐ NEW! ==========
+
+# 运行数据湖示例 (需要 Spark 集群)
+spark-submit --class com.bigdata.datalake.DataLakeApp \
+  --packages io.delta:delta-core_2.12:2.2.0,org.apache.hudi:hudi-spark3.2-bundle_2.12:0.14.0 \
+  target/spark-hadoop-hive-demo01-1.0-SNAPSHOT.jar
+
+# ========== MLflow 机器学习 ⭐ NEW! ==========
+
+# 启动 MLflow Server
+docker-compose up -d mlflow
+
+# 访问 MLflow UI: http://localhost:5000
+
+# 运行 ML 实战
+spark-submit --class com.bigdata.ml.MLPlatformApp \
+  target/spark-hadoop-hive-demo01-1.0-SNAPSHOT.jar
+
+# ========== 数据安全 Ranger + Kerberos ⭐ NEW! ==========
+
+# 运行数据安全演示 (Ranger策略/脱敏/加密/审计)
+mvn exec:java -Dexec.mainClass="com.bigdata.security.DataSecurityApp"
+
+# ========== 实时 OLAP Doris + StarRocks ⭐ NEW! ==========
+
+# 启动 Doris + StarRocks
+docker-compose up -d doris-fe doris-be starrocks-fe starrocks-be
+
+# 访问:
+#   Doris FE:      http://localhost:8030 (Web UI)
+#   Doris MySQL:   mysql -h127.0.0.1 -P9030 -uroot
+#   StarRocks FE:  http://localhost:8031
+#   StarRocks MySQL: mysql -h127.0.0.1 -P9031 -uroot
+
+# 运行 OLAP 建模和分析示例
+mvn exec:java -Dexec.mainClass="com.bigdata.olap.RealtimeOlapApp"
+
+# ========== 图计算 Neo4j + Spark GraphX ⭐ NEW! ==========
+
+# 启动 Neo4j
+docker-compose up -d neo4j
+
+# 访问:
+#   Neo4j Browser: http://localhost:7474 (用户: neo4j, 密码: bigdata123)
+#   Bolt 协议:     bolt://localhost:7687
+
+# 运行图计算示例
+spark-submit --class com.bigdata.graph.GraphComputingApp \
+  target/spark-hadoop-hive-demo01-1.0-SNAPSHOT.jar
+
+# ========== 数据编排 dbt + Airbyte ⭐ NEW! ==========
+
+# 启动 Airbyte
+docker-compose up -d airbyte-server airbyte-db
+
+# 访问:
+#   Airbyte Server:  http://localhost:8000
+
+# 运行数据编排示例
+mvn exec:java -Dexec.mainClass="com.bigdata.orchestration.DataOrchestrationApp"
+
+# dbt 常用命令:
+#   dbt run --target prod                    # 全量运行
+#   dbt run --select tag:staging             # 只跑 staging 层
+#   dbt test --target prod --store-failures  # 运行测试
+#   dbt source freshness --target prod       # 检查数据新鲜度
+#   dbt docs generate && dbt docs serve      # 生成文档
+
+# ========== Serverless Flink on K8s ⭐ NEW! ==========
+
+# 运行 Serverless 计算示例 (Flink on K8s 架构演示)
+mvn exec:java -Dexec.mainClass="com.bigdata.serverless.FlinkServerlessApp"
+
+# Flink K8s 部署命令:
+#   helm install flink-operator flink-operator-repo/flink-kubernetes-operator
+#   kubectl apply -f flink-deployments/ecommerce-streaming.yaml
+#   kubectl get flinkdeployment -n flink-prod
+
+# ========== 数据可观测性 OpenLineage + Marquez ⭐ NEW! ==========
+
+# 启动 Marquez
+docker-compose up -d marquez-api marquez-web marquez-db
+
+# 访问:
+#   Marquez API:  http://localhost:5001
+#   Marquez Web:  http://localhost:3001 (血缘可视化)
+
+# 运行可观测性示例
+mvn exec:java -Dexec.mainClass="com.bigdata.observability.DataObservabilityApp"
+
+# Spark 启用 OpenLineage 血缘采集:
+spark-submit \
+  --packages io.openlineage:openlineage-spark_2.12:1.7.0 \
+  --conf spark.extraListeners=io.openlineage.spark.agent.OpenLineageSparkListener \
+  --conf spark.openlineage.transport.url=http://localhost:5001/api/v1/lineage \
+  --conf spark.openlineage.namespace=prod-spark \
+  --class com.bigdata.spark.SparkHiveJavaApp \
+  target/spark-hadoop-hive-demo01-1.0-SNAPSHOT.jar
+
+# ========== 数据契约 Data Contract + Data Mesh ⭐ NEW! ==========
+
+# 运行数据契约演示
+mvn exec:java -Dexec.mainClass="com.bigdata.contract.DataContractApp"
+
+# Data Contract CLI:
+#   datacontract lint datacontracts/orders-contract.yaml
+#   datacontract test datacontracts/orders-contract.yaml --server warehouse
+#   datacontract diff --old v1.yaml --new v2.yaml
+
+# ========== 向量数据库 Milvus + RAG ⭐ NEW! ==========
+
+# 启动 Milvus
+docker-compose up -d milvus-etcd milvus-minio milvus-standalone milvus-attu
+
+# 访问:
+#   Milvus gRPC:  localhost:19530
+#   Attu Web UI:  http://localhost:8003
+
+# 运行向量数据库示例
+mvn exec:java -Dexec.mainClass="com.bigdata.vector.VectorDatabaseApp"
+
+# ========== 特征工程 Feature Store (Feast) ⭐ NEW! ==========
+
+# 启动 Feast + Redis
+docker-compose up -d feast-server feast-db redis
+
+# 访问:
+#   Feast Server:  http://localhost:6566
+#   Redis:         localhost:6379
+
+# 运行特征工程示例
+mvn exec:java -Dexec.mainClass="com.bigdata.feature.FeatureStoreApp"
+
+# ========== DataOps 平台工程 ⭐ NEW! ==========
+
+# 运行 DataOps 平台示例
+mvn exec:java -Dexec.mainClass="com.bigdata.dataops.DataOpsApp"
+
+# Terraform 部署:
+#   terraform init
+#   terraform plan -var="environment=prod" -var="team=data-platform"
+#   terraform apply -auto-approve
+
+# ========== CDC 全链路 Debezium + Flink CDC ⭐ NEW! ==========
+
+# 启动 Schema Registry
+docker-compose up -d schema-registry
+
+# 访问:
+#   Schema Registry:  http://localhost:8085
+
+# 运行 CDC 全链路示例
+mvn exec:java -Dexec.mainClass="com.bigdata.cdc.CDCPipelineApp"
+
+# Flink CDC 3.0 YAML Pipeline:
+#   bin/flink-cdc.sh mysql-to-doris.yaml
 ```
 
 ## 📊 数据流程示例
@@ -1569,6 +2090,15 @@ EXPLAIN EXTENDED SELECT * FROM sales JOIN users;
 - [Flink CDC 官方文档](https://ververica.github.io/flink-cdc-connectors/)
 - [Apache Iceberg 官方文档](https://iceberg.apache.org)
 - [ClickHouse 官方文档](https://clickhouse.com/docs)
+
+### AI & 数据工程前沿 ⭐ NEW!
+- [Milvus 向量数据库](https://milvus.io/docs)
+- [Feast Feature Store](https://docs.feast.dev)
+- [Data Contract Specification](https://datacontract.com)
+- [OpenLineage 数据血缘](https://openlineage.io)
+- [Debezium CDC](https://debezium.io/documentation)
+- [Terraform 基础设施代码](https://developer.hashicorp.com/terraform)
+- [dbt 数据转换](https://docs.getdbt.com)
 
 ### 推荐学习资源
 - 📖 《Flink 实战》

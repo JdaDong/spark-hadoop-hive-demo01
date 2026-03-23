@@ -1,0 +1,832 @@
+# ============================================================
+# 大数据技术栈 Docker Compose 一键部署
+# ============================================================
+# 包含组件:
+#   - Zookeeper (3.8)
+#   - Kafka (3.4)
+#   - Flink JobManager + TaskManager (1.17)
+#   - ClickHouse (23.8)
+#   - MySQL (8.0, 用于CDC测试)
+#   - Kafka UI (管理界面)
+#   - Grafana (可视化大屏)
+#   - Airflow (2.7, 工作流调度) 🆕
+#   - Atlas (2.3, 数据治理)     🆕
+#   - Solr (9.0, Atlas全文索引) 🆕
+#   - Prometheus (2.47, 监控)   🆕
+#   - Alertmanager (0.26, 告警) 🆕
+#   - MLflow (2.8, ML平台)      🆕
+#   - Doris FE+BE (2.0, OLAP)   🆕
+#   - StarRocks FE+BE (3.1)     🆕
+#   - Neo4j (5.15, 图数据库)    🆕
+#   - Airbyte (0.50, EL集成)    🆕
+#   - Marquez (0.45, 血缘追踪)  🆕
+#   - Milvus (2.4, 向量数据库)  🆕
+#   - Schema Registry (7.5)     🆕
+#   - Feast (0.37, 特征存储)    🆕
+# 
+# 启动命令:
+#   docker-compose up -d
+#
+# 停止命令:
+#   docker-compose down
+#
+# 查看日志:
+#   docker-compose logs -f [service_name]
+# ============================================================
+
+version: '3.8'
+
+services:
+  # ==================== Zookeeper ====================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: echo ruok | nc localhost 2181 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Kafka ====================
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_MESSAGE_MAX_BYTES: 10485760
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ==================== Kafka UI ====================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+    networks:
+      - bigdata-net
+
+  # ==================== Flink JobManager ====================
+  flink-jobmanager:
+    image: flink:1.17.1-scala_2.12-java8
+    container_name: flink-jobmanager
+    hostname: flink-jobmanager
+    ports:
+      - "8081:8081"    # Flink Web UI
+    command: jobmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 2048m
+        state.backend: rocksdb
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/savepoints
+        execution.checkpointing.interval: 60000
+        execution.checkpointing.mode: EXACTLY_ONCE
+        execution.checkpointing.min-pause: 500
+        execution.checkpointing.timeout: 600000
+        restart-strategy: fixed-delay
+        restart-strategy.fixed-delay.attempts: 3
+        restart-strategy.fixed-delay.delay: 10s
+        table.exec.mini-batch.enabled: true
+        table.exec.mini-batch.allow-latency: 5s
+        table.exec.mini-batch.size: 5000
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
+      - flink-savepoints:/opt/flink/savepoints
+      - ./target:/opt/flink/usrlib  # 部署 JAR
+    networks:
+      - bigdata-net
+
+  # ==================== Flink TaskManager ====================
+  flink-taskmanager:
+    image: flink:1.17.1-scala_2.12-java8
+    container_name: flink-taskmanager
+    hostname: flink-taskmanager
+    command: taskmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.memory.process.size: 4096m
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.managed.fraction: 0.4
+        taskmanager.memory.network.fraction: 0.1
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
+      - flink-savepoints:/opt/flink/savepoints
+    depends_on:
+      - flink-jobmanager
+    networks:
+      - bigdata-net
+    # 可增加更多 TaskManager 实例
+    # deploy:
+    #   replicas: 2
+
+  # ==================== ClickHouse ====================
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: clickhouse
+    hostname: clickhouse
+    ports:
+      - "8123:8123"    # HTTP 接口
+      - "9000:9000"    # 原生接口
+      - "9009:9009"    # 集群间通信
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: clickhouse-client --query "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== MySQL (CDC 数据源) ====================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    hostname: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: cdc_user
+      MYSQL_PASSWORD: cdc_password
+    command:
+      --server-id=1
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+      --binlog-row-image=FULL
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max-connections=500
+      --innodb-buffer-pool-size=256M
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./scripts/mysql-init:/docker-entrypoint-initdb.d  # 初始化SQL
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: mysqladmin ping -h localhost -u root -ppassword
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Grafana (可视化) ====================
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - clickhouse
+    networks:
+      - bigdata-net
+
+  # ==================== Airflow (工作流调度) 🆕 ====================
+  # 使用 LocalExecutor 模式, 适合开发/测试环境
+  airflow-webserver:
+    image: apache/airflow:2.7.3-python3.10
+    container_name: airflow-webserver
+    hostname: airflow-webserver
+    ports:
+      - "8082:8080"    # Airflow Web UI
+    environment: &airflow-common-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: 46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Shanghai
+      AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: Asia/Shanghai
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      # Airflow Connections (通过环境变量预配置)
+      AIRFLOW_CONN_MYSQL_DEFAULT: mysql://root:password@mysql:3306/ecommerce
+      AIRFLOW_CONN_CLICKHOUSE_DEFAULT: http://default:@clickhouse:8123/default
+      AIRFLOW_CONN_SPARK_DEFAULT: spark://flink-jobmanager:8081
+      AIRFLOW_CONN_HIVE_DEFAULT: hive://hive@localhost:10000/dw
+      # Airflow Variables
+      AIRFLOW_VAR_FLINK_REST_URL: http://flink-jobmanager:8081
+      AIRFLOW_VAR_KAFKA_BOOTSTRAP: kafka:29092
+      AIRFLOW_VAR_ATLAS_URL: http://atlas:21000
+      AIRFLOW_VAR_ALERT_EMAILS: data-team@company.com
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags      # DAG 文件目录
+      - airflow-logs:/opt/airflow/logs
+      - airflow-plugins:/opt/airflow/plugins
+    command: webserver
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.3-python3.10
+    container_name: airflow-scheduler
+    hostname: airflow-scheduler
+    environment: *airflow-common-env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+      - airflow-plugins:/opt/airflow/plugins
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$${HOSTNAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  airflow-init:
+    image: apache/airflow:2.7.3-python3.10
+    container_name: airflow-init
+    environment: *airflow-common-env
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db init
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com || true
+        # 安装额外 Python 依赖
+        pip install apache-airflow-providers-apache-spark \
+                    apache-airflow-providers-apache-hive \
+                    apache-airflow-providers-mysql \
+                    apache-airflow-providers-http \
+                    clickhouse-driver \
+                    kafka-python
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    networks:
+      - bigdata-net
+
+  airflow-postgres:
+    image: postgres:15-alpine
+    container_name: airflow-postgres
+    hostname: airflow-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-postgres-data:/var/lib/postgresql/data
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Solr (Atlas 全文索引) 🆕 ====================
+  solr:
+    image: solr:9.0
+    container_name: solr
+    hostname: solr
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr-data:/var/solr
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8983/solr/admin/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Apache Atlas (数据治理) 🆕 ====================
+  atlas:
+    image: sburn/apache-atlas:2.3.0
+    container_name: atlas
+    hostname: atlas
+    ports:
+      - "21000:21000"   # Atlas Web UI & REST API
+    environment:
+      ATLAS_SERVER_HEAP: "-Xms1024m -Xmx2048m"
+      MANAGE_LOCAL_SOLR: "false"
+      MANAGE_LOCAL_HBASE: "true"
+      MANAGE_EMBEDDED_CASSANDRA: "false"
+    volumes:
+      - atlas-data:/opt/apache-atlas-2.3.0/data
+      - atlas-logs:/opt/apache-atlas-2.3.0/logs
+    depends_on:
+      - zookeeper
+      - kafka
+      - solr
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "admin:admin", "http://localhost:21000/api/atlas/v2/types/typedefs/headers"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+
+  # ==================== Prometheus (监控) 🆕 ====================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    hostname: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./scripts/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./scripts/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Alertmanager (告警) 🆕 ====================
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    hostname: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager-data:/alertmanager
+    networks:
+      - bigdata-net
+
+  # ==================== Node Exporter (主机指标) 🆕 ====================
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
+    hostname: node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - bigdata-net
+
+  # ==================== MLflow (ML平台) 🆕 ====================
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.8.0
+    container_name: mlflow
+    hostname: mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_BACKEND_STORE_URI: mysql+pymysql://root:password@mysql:3306/mlflow
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: /mlartifacts
+    volumes:
+      - mlflow-artifacts:/mlartifacts
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri mysql+pymysql://root:password@mysql:3306/mlflow
+      --default-artifact-root /mlartifacts
+    depends_on:
+      - mysql
+    networks:
+      - bigdata-net
+
+  # ==================== Apache Doris FE (OLAP) 🆕 ====================
+  doris-fe:
+    image: apache/doris:2.0.3-fe-x86_64
+    container_name: doris-fe
+    hostname: doris-fe
+    ports:
+      - "8030:8030"
+      - "9030:9030"
+    volumes:
+      - doris-fe-meta:/opt/apache-doris/fe/doris-meta
+    environment:
+      FE_SERVERS: "fe1:doris-fe:9010"
+      FE_ID: 1
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8030/api/bootstrap"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ==================== Apache Doris BE (OLAP) 🆕 ====================
+  doris-be:
+    image: apache/doris:2.0.3-be-x86_64
+    container_name: doris-be
+    hostname: doris-be
+    ports:
+      - "8040:8040"
+    volumes:
+      - doris-be-storage:/opt/apache-doris/be/storage
+    environment:
+      FE_SERVERS: "fe1:doris-fe:9010"
+      BE_ADDR: "doris-be:9050"
+    depends_on:
+      doris-fe:
+        condition: service_healthy
+    networks:
+      - bigdata-net
+
+  # ==================== StarRocks FE (高性能OLAP) 🆕 ====================
+  starrocks-fe:
+    image: starrocks/fe-ubuntu:3.1.4
+    container_name: starrocks-fe
+    hostname: starrocks-fe
+    ports:
+      - "8031:8030"
+      - "9031:9030"
+    volumes:
+      - starrocks-fe-meta:/opt/starrocks/fe/meta
+    environment:
+      HOST_TYPE: FQDN
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8030/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ==================== StarRocks BE (高性能OLAP) 🆕 ====================
+  starrocks-be:
+    image: starrocks/be-ubuntu:3.1.4
+    container_name: starrocks-be
+    hostname: starrocks-be
+    ports:
+      - "8041:8040"
+    volumes:
+      - starrocks-be-storage:/opt/starrocks/be/storage
+    environment:
+      HOST_TYPE: FQDN
+    depends_on:
+      starrocks-fe:
+        condition: service_healthy
+    networks:
+      - bigdata-net
+
+  # ==================== Neo4j (图数据库) 🆕 ====================
+  neo4j:
+    image: neo4j:5.15.0
+    container_name: neo4j
+    hostname: neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/bigdata123
+      NEO4J_PLUGINS: '["graph-data-science"]'
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 512m
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "bigdata123", "RETURN 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ==================== Airbyte Server (数据集成) 🆕 ====================
+  airbyte-server:
+    image: airbyte/airbyte-server:0.50.33
+    container_name: airbyte-server
+    hostname: airbyte-server
+    ports:
+      - "8000:8000"
+    environment:
+      AIRBYTE_VERSION: 0.50.33
+      DATABASE_URL: jdbc:postgresql://airbyte-db:5432/airbyte
+      DATABASE_USER: airbyte
+      DATABASE_PASSWORD: airbyte123
+      TRACKING_STRATEGY: logging
+      WORKER_ENVIRONMENT: docker
+    depends_on:
+      - airbyte-db
+    networks:
+      - bigdata-net
+
+  # ==================== Airbyte DB (PostgreSQL) 🆕 ====================
+  airbyte-db:
+    image: postgres:15-alpine
+    container_name: airbyte-db
+    hostname: airbyte-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: airbyte
+      POSTGRES_PASSWORD: airbyte123
+      POSTGRES_DB: airbyte
+    volumes:
+      - airbyte-db:/var/lib/postgresql/data
+    networks:
+      - bigdata-net
+
+  # ==================== Marquez API (数据血缘) 🆕 ====================
+  marquez-api:
+    image: marquezproject/marquez:0.45.0
+    container_name: marquez-api
+    hostname: marquez-api
+    ports:
+      - "5001:5000"
+      - "5002:5001"
+    environment:
+      MARQUEZ_PORT: 5000
+      MARQUEZ_ADMIN_PORT: 5001
+      MARQUEZ_CONFIG: /etc/marquez/marquez.yml
+      POSTGRES_HOST: marquez-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: marquez
+      POSTGRES_USER: marquez
+      POSTGRES_PASSWORD: marquez123
+    depends_on:
+      - marquez-db
+    networks:
+      - bigdata-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/namespaces"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ==================== Marquez Web UI 🆕 ====================
+  marquez-web:
+    image: marquezproject/marquez-web:0.45.0
+    container_name: marquez-web
+    hostname: marquez-web
+    ports:
+      - "3001:3000"
+    environment:
+      MARQUEZ_HOST: marquez-api
+      MARQUEZ_PORT: 5000
+    depends_on:
+      - marquez-api
+    networks:
+      - bigdata-net
+
+  # ==================== Marquez DB (PostgreSQL) 🆕 ====================
+  marquez-db:
+    image: postgres:15-alpine
+    container_name: marquez-db
+    hostname: marquez-db
+    environment:
+      POSTGRES_USER: marquez
+      POSTGRES_PASSWORD: marquez123
+      POSTGRES_DB: marquez
+    volumes:
+      - marquez-db:/var/lib/postgresql/data
+    networks:
+      - bigdata-net
+
+  # ==================== Schema Registry (Kafka Schema管理) 🆕 ====================
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema-registry
+    hostname: schema-registry
+    ports:
+      - "8085:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: BACKWARD
+    depends_on:
+      - kafka
+    networks:
+      - bigdata-net
+
+  # ==================== Milvus 向量数据库 🆕 ====================
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.11
+    container_name: milvus-etcd
+    hostname: milvus-etcd
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+    volumes:
+      - milvus-etcd-data:/etcd
+    command: >
+      etcd -advertise-client-urls=http://127.0.0.1:2379
+      -listen-client-urls http://0.0.0.0:2379
+      --data-dir /etcd
+    networks:
+      - bigdata-net
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2023-12-20T01-00-02Z
+    container_name: milvus-minio
+    hostname: milvus-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - milvus-minio-data:/minio_data
+    command: minio server /minio_data
+    networks:
+      - bigdata-net
+
+  milvus-standalone:
+    image: milvusdb/milvus:v2.4.1
+    container_name: milvus-standalone
+    hostname: milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+    volumes:
+      - milvus-data:/var/lib/milvus
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    networks:
+      - bigdata-net
+
+  milvus-attu:
+    image: zilliz/attu:v2.4
+    container_name: milvus-attu
+    ports:
+      - "8003:3000"
+    environment:
+      MILVUS_URL: milvus-standalone:19530
+    depends_on:
+      - milvus-standalone
+    networks:
+      - bigdata-net
+
+  # ==================== Feast Feature Server 🆕 ====================
+  feast-server:
+    image: feastdev/feature-server:0.37.0
+    container_name: feast-server
+    hostname: feast-server
+    ports:
+      - "6566:6566"
+    environment:
+      FEAST_REGISTRY: postgresql://feast:feast123@feast-db:5432/feast_registry
+      FEAST_ONLINE_STORE_TYPE: redis
+      FEAST_REDIS_CONNECTION_STRING: redis:6379
+    depends_on:
+      - feast-db
+      - redis
+    networks:
+      - bigdata-net
+
+  feast-db:
+    image: postgres:15-alpine
+    container_name: feast-db
+    hostname: feast-db
+    environment:
+      POSTGRES_USER: feast
+      POSTGRES_PASSWORD: feast123
+      POSTGRES_DB: feast_registry
+    volumes:
+      - feast-db:/var/lib/postgresql/data
+    networks:
+      - bigdata-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - bigdata-net
+
+# ==================== 持久化卷 ====================
+volumes:
+  zookeeper-data:
+  zookeeper-log:
+  kafka-data:
+  flink-checkpoints:
+  flink-savepoints:
+  clickhouse-data:
+  clickhouse-logs:
+  mysql-data:
+  grafana-data:
+  airflow-logs:
+  airflow-plugins:
+  airflow-postgres-data:
+  solr-data:
+  atlas-data:
+  atlas-logs:
+  prometheus-data:
+  alertmanager-data:
+  mlflow-artifacts:
+  doris-fe-meta:
+  doris-be-storage:
+  starrocks-fe-meta:
+  starrocks-be-storage:
+  neo4j-data:
+  neo4j-logs:
+  airbyte-data:
+  airbyte-db:
+  marquez-db:
+  milvus-etcd-data:
+  milvus-minio-data:
+  milvus-data:
+  feast-db:
+  redis-data:
+
+# ==================== 网络 ====================
+networks:
+  bigdata-net:
+    driver: bridge

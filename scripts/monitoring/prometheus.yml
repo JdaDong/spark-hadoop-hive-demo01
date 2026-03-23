@@ -1,0 +1,64 @@
+# Prometheus 监控配置 (大数据平台)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+# 告警规则文件
+rule_files:
+  - "alert_rules.yml"
+
+# Alertmanager 配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# 采集目标
+scrape_configs:
+  # Prometheus 自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 大数据监控 Exporter (自定义)
+  - job_name: 'bigdata_exporter'
+    static_configs:
+      - targets: ['bigdata-exporter:9091']
+    scrape_interval: 10s
+
+  # Flink (Prometheus Reporter)
+  - job_name: 'flink'
+    static_configs:
+      - targets: ['flink-jobmanager:9249', 'flink-taskmanager:9249']
+    scrape_interval: 10s
+
+  # Kafka (JMX Exporter)
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:7071']
+    scrape_interval: 15s
+
+  # ClickHouse
+  - job_name: 'clickhouse'
+    static_configs:
+      - targets: ['clickhouse:9363']
+    scrape_interval: 15s
+
+  # Node Exporter (主机指标)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Airflow StatsD Exporter
+  - job_name: 'airflow'
+    static_configs:
+      - targets: ['airflow-statsd-exporter:9102']
+    scrape_interval: 30s
+
+  # MLflow
+  - job_name: 'mlflow'
+    static_configs:
+      - targets: ['mlflow:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s

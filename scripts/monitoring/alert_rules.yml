@@ -1,0 +1,142 @@
+# 大数据平台 Prometheus 告警规则
+groups:
+  - name: kafka_alerts
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: kafka_consumer_lag > 100000
+        for: 5m
+        labels:
+          severity: warning
+          team: data-platform
+        annotations:
+          summary: "Kafka Consumer Lag 过高"
+          description: "Topic {{ $labels.topic }} Lag: {{ $value }}"
+
+      - alert: KafkaConsumerLagCritical
+        expr: kafka_consumer_lag > 1000000
+        for: 2m
+        labels:
+          severity: critical
+          team: data-platform
+        annotations:
+          summary: "Kafka Lag 严重堆积"
+          description: "Topic {{ $labels.topic }} Lag 超过 100万"
+
+      - alert: KafkaBrokerDown
+        expr: kafka_broker_count < 3
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Kafka Broker 宕机"
+          description: "存活 Broker: {{ $value }}"
+
+  - name: flink_alerts
+    rules:
+      - alert: FlinkJobFailed
+        expr: flink_running_jobs == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: realtime
+        annotations:
+          summary: "Flink 无运行中作业"
+          description: "所有 Flink 作业已停止"
+
+      - alert: FlinkBackpressureHigh
+        expr: flink_backpressure_ratio > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: realtime
+        annotations:
+          summary: "Flink 背压严重"
+          description: "算子 {{ $labels.operator }} 背压率: {{ $value }}"
+
+      - alert: FlinkCheckpointFailed
+        expr: rate(flink_checkpoint_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: realtime
+        annotations:
+          summary: "Flink Checkpoint 失败"
+
+  - name: hdfs_alerts
+    rules:
+      - alert: HDFSCapacityLow
+        expr: hdfs_capacity_used_bytes / hdfs_capacity_total_bytes > 0.85
+        for: 30m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "HDFS 空间不足 15%"
+
+      - alert: HDFSDataNodeDown
+        expr: hdfs_dead_datanodes > 0
+        for: 5m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "HDFS DataNode 宕机: {{ $value }}"
+
+      - alert: HDFSMissingBlocks
+        expr: hdfs_block_count{status="missing"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "HDFS 数据块丢失: {{ $value }}"
+
+  - name: etl_alerts
+    rules:
+      - alert: ETLDataFreshnessStale
+        expr: etl_data_freshness_seconds > 7200
+        for: 30m
+        labels:
+          severity: warning
+          team: data-platform
+        annotations:
+          summary: "数据超过 2 小时未更新"
+
+      - alert: ETLSLAViolation
+        expr: pipeline_sla_compliance < 0.95
+        for: 10m
+        labels:
+          severity: critical
+          team: data-platform
+        annotations:
+          summary: "ETL SLA 违规: {{ $value }}"
+
+      - alert: PipelineE2ELatencyHigh
+        expr: histogram_quantile(0.95, pipeline_e2e_latency_seconds_bucket) > 3600
+        for: 15m
+        labels:
+          severity: critical
+          team: data-platform
+        annotations:
+          summary: "端到端延迟超过 1 小时"
+
+  - name: clickhouse_alerts
+    rules:
+      - alert: ClickHouseQuerySlow
+        expr: histogram_quantile(0.95, clickhouse_query_duration_seconds_bucket) > 10
+        for: 15m
+        labels:
+          severity: warning
+          team: analytics
+        annotations:
+          summary: "ClickHouse P95 查询超过 10s"
+
+      - alert: ClickHouseMemoryHigh
+        expr: clickhouse_memory_usage_bytes > 10737418240
+        for: 5m
+        labels:
+          severity: warning
+          team: analytics
+        annotations:
+          summary: "ClickHouse 内存超过 10GB"

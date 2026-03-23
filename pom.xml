@@ -28,6 +28,15 @@
         <flink-cdc.version>2.4.1</flink-cdc.version>
         <iceberg.version>1.4.2</iceberg.version>
         <clickhouse.version>0.5.0</clickhouse.version>
+        <atlas.version>2.3.0</atlas.version>
+        <prometheus.version>0.16.0</prometheus.version>
+        <delta.version>2.2.0</delta.version>
+        <hudi.version>0.14.0</hudi.version>
+        <neo4j.driver.version>5.15.0</neo4j.driver.version>
+        <doris.jdbc.version>1.1.5</doris.jdbc.version>
+        <openlineage.version>1.7.0</openlineage.version>
+        <milvus.sdk.version>2.4.1</milvus.sdk.version>
+        <flink.cdc.version>3.1.0</flink.cdc.version>
     </properties>
 
     <dependencies>
@@ -56,6 +65,20 @@
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <!-- Spark Streaming -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <!-- Spark SQL Kafka -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql-kafka-0-10_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
 
@@ -263,6 +286,91 @@
             <artifactId>clickhouse-jdbc</artifactId>
             <version>${clickhouse.version}</version>
             <classifier>all</classifier>
+        </dependency>
+
+        <!-- Apache Atlas Client -->
+        <dependency>
+            <groupId>org.apache.atlas</groupId>
+            <artifactId>atlas-client-v2</artifactId>
+            <version>${atlas.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.atlas</groupId>
+            <artifactId>atlas-common</artifactId>
+            <version>${atlas.version}</version>
+        </dependency>
+
+        <!-- Prometheus Client (监控指标) -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_httpserver</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+
+        <!-- Delta Lake -->
+        <dependency>
+            <groupId>io.delta</groupId>
+            <artifactId>delta-core_${scala.binary.version}</artifactId>
+            <version>${delta.version}</version>
+        </dependency>
+
+        <!-- Apache Hudi -->
+        <dependency>
+            <groupId>org.apache.hudi</groupId>
+            <artifactId>hudi-spark3.2-bundle_${scala.binary.version}</artifactId>
+            <version>${hudi.version}</version>
+        </dependency>
+
+        <!-- Spark MLlib -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mllib_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <!-- Spark GraphX (图计算) -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-graphx_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <!-- Neo4j Java Driver -->
+        <dependency>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+            <version>${neo4j.driver.version}</version>
+        </dependency>
+
+        <!-- Apache Doris JDBC -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+
+        <!-- OpenLineage Spark 集成 (数据血缘) -->
+        <dependency>
+            <groupId>io.openlineage</groupId>
+            <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
+            <version>${openlineage.version}</version>
+        </dependency>
+
+        <!-- OpenLineage Java Client -->
+        <dependency>
+            <groupId>io.openlineage</groupId>
+            <artifactId>openlineage-java</artifactId>
+            <version>${openlineage.version}</version>
         </dependency>
 
         <!-- Testing -->
